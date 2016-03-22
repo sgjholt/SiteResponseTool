@@ -13,7 +13,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with OpenQuake.  If not, see <http://www.gnu.org/licenses/>.
+# along with OpenQuake. If not, see <http://www.gnu.org/licenses/>.
+#
+# Author: Poggi Valerio
 
 '''
 Collection of base classes to create site models.
@@ -22,6 +24,7 @@ Collection of base classes to create site models.
 #--------------------------------------------------
 
 import numpy as np
+import SiteMethods as SM
 
 #--------------------------------------------------
 
@@ -42,18 +45,21 @@ class Site1D(object):
 
   #--------------------------------------------------
 
-  def AddLayer(self, Hl=[],
-                     Vp=[],
-                     Vs=[],
-                     Qp=[],
-                     Qs=[]):
+  def AddLayer(self, data=[]):
 
-    L = {'Hl': Hl,
-         'Vp': Vp,
-         'Vs': Vs,
-         'Qp': Qp,
-         'Qs': Qs}
+    # Create a basic empty layer structure
+    L = {'Hl': [],
+         'Vp': [],
+         'Vs': [],
+         'Qp': [],
+         'Qs': []}
 
+    # Inflate structure with data (if any)
+    if data:
+      for k in data.keys():
+        L[k] = float(data[k])
+
+    # Add the layer to the model
     self.layer.append(L)
     self.layer_number += 1
 
@@ -65,26 +71,76 @@ class Site1D(object):
 
   #--------------------------------------------------
 
-  def ImportAsciiModel(self, model_file, delimeter=' ', skipline=0):
+  def TTAverageVelocity(self, key, Z):
 
+    Hl = self.GetProfile('Hl')
+    Vs = self.GetProfile(key)
+    VsZ = SM.TTAverageVelocity(Hl, Vs, Z)
+
+    return VsZ
+
+  #--------------------------------------------------
+
+  def ImportAsciiModel(self, model_file,
+                             header=[],
+                             delimeter=',',
+                             skipline=0,
+                             comment='#'):
+
+    # Opening input model
     with open(model_file, 'r') as f:
 
+      # Reinitialise layer parameters
       self.layer = []
       self.layer_number = 0
 
-      # Read and ignore header lines
+      # Read and ignore initial lines
       for i in range(0, skipline):
         f.readline()
 
-      for i, line in enumerate(f):
+      # Import header line if not specified
+      if not header:
+        line = f.readline()
+        header = line.strip().split(delimeter)
 
-        line = line.strip().split(delimeter)
-        value = np.array(line, dtype=float)
+      # Loop over data
+      for line in f:
 
-        self.AddLayer(value[0],
-                      value[1],
-                      value[2],
-                      value[3],
-                      value[4])
+         # Skip comment lines
+        if line[0] != comment:
+
+          line = line.strip().split(delimeter)
+          value = np.array(line, dtype=float)
+
+          # Loop over header keys
+          data = {}
+          for i, k in enumerate(header):
+            data[k] = value[i]
+
+          self.AddLayer(data)
 
       f.close()
+      return
+
+    # If file does not exist
+    print 'File not found.'
+
+#--------------------------------------------------
+
+class SiteBox(object):
+
+  def __init__(self, Id=[],
+                     Name=[]):
+
+    self.meta = {'Id': Id,
+                 'Name': Name}
+
+    self.site = []
+    self.site_number = 0
+
+  #--------------------------------------------------
+
+  def AddSite(self, Site1D):
+
+    self.site.append(Site1D)
+    self.site_number += 1
