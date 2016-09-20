@@ -50,14 +50,14 @@ class Site1D(object):
     self.Keys = Keys
     self.Layer = []
 
+    self.Freq = []
+
     self.EngPar = {}
-    self.EngPar['Vz'] = {}
-    self.EngPar['Qwl'] = {}
+    self.AmpFun = {}
 
 
   def AddLayer(self, Data=[]):
     '''
-    
     Method to add a single layer (and its properties)
     to the site structure, at the bottom of an existing stack.
     Data can be a list of values, sorted according to Site1D.Keys
@@ -123,42 +123,75 @@ class Site1D(object):
 
   def GetProfile(self, key):
     '''
-    Method to extract a column of soil properties from
-    the layer stack. It returns a numpy array.
+    Utility method to extract a column of soil properties
+    from the layer stack. It returns a numpy array.
     '''
 
     return np.array([i[key] for i in self.Layer])
 
 
-  def ComputeTTAV(self, key, Z):
+  def ComputeTTAV(self, key='Vs', Z=30.):
     '''
     Compute and store travel-time average velocity at
     a given depth (Z) and for a specific key.
+    Default is Vs30
     '''
 
+    # Formatting model parameters
     Hl = self.GetProfile('Hl')
     Vl = self.GetProfile(key)
 
+    # Compute average velocity
     Vz = SM.TTAverageVelocity(Hl, Vl, Z)
 
+    # Check if data structure exists
+    if not self.EngPar:
+      self.EngPar['Vz'] = {}
+
+    # Store results into database
     self.EngPar['Vz'][str(Z)] = Vz
 
     return Vz
 
 
-  def ComputeSHTF(self, Freq, Iang):
+  def ComputeGTClass(self,BCode='EC8'):
     '''
-    Compute the SH transfer function.
     '''
 
+    Vs30 = self.EngPar['Vz']['30.0']
+
+    # Check if data structure exists
+    if not self.EngPar:
+      self.EngPar[Bcode] = {}
+
+    if Vs30 >= 800.:
+      self.EngPar['EC8'] = 'A'
+    if Vs30 >= 600. and Vs30 < 800.:
+      self.EngPar['EC8'] = 'B'
+
+  def ComputeSHTF(self, Iang=0.):
+    '''
+    Compute the SH transfer function for an arbitrary
+    incidence angle. Default angle is 0.
+    '''
+
+    # Formatting model parameters
     Hl = self.GetProfile('Hl')
     Vs = self.GetProfile('Vs')
     Dn = self.GetProfile('Dn')
     Qs = self.GetProfile('Qs')
 
-    shtf = SM.ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang)
+    # TF calculation
+    ShTF = SM.ShTransferFunction(Hl, Vs, Dn, Qs, self.Freq, Iang)
 
-    return shtf
+    # Check if data structure exists
+    if not self.AmpFun:
+      self.AmpFun['ShTF'] = {}
+
+    # Store results into database
+    self.AmpFun['ShTF'] = ShTF
+
+    return ShTF
 
 
 class SiteBox(object):

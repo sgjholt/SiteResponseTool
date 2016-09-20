@@ -61,20 +61,29 @@ zone.AddSite(site)
 #--------------------------------------------------------------
 # Computing Travel-Time average velocity
 
-# Direct call
-print 'Vs30:', site.ComputeTTAV('Vs',30.)
+# Direct call (using default values)
+print 'Vs30:', site.ComputeTTAV()
 
-# Using database
+# Using stored values for arbitrary depth
 site.ComputeTTAV('Vs',50.)
 print 'Vs50:', site.EngPar['Vz']['50.0']
+
+#--------------------------------------------------------------
+# Compute Geotechnical soil class
+
+site.ComputeGTClass('EC8')
+
+print site.EngPar['EC8']
 
 #--------------------------------------------------------------
 # Computing SH transfer-function
 
 # Frequency axis
-freq = np.logspace(np.log10(0.1),np.log10(100),1000)
+site.Freq = np.logspace(np.log10(0.1),
+                        np.log10(100),
+                        1000)
 
-shtf = site.ComputeSHTF(freq,0.)
+site.ComputeSHTF()
 
-plt.plot(freq,np.abs(shtf))
+plt.plot(site.Freq,np.abs(site.AmpFun['ShTF']))
 plt.show(block=False)
