@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-
-# Copyright (C) 2016 GEM Foundation
 #
-# SeismicSiteTool is free software: you can redistribute it and/or modify it
+# Copyright (C) 2010-2016 GEM Foundation
+#
+# OpenQuake is free software: you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published
 # by the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# SeismicSiteTool is distributed in the hope that it will be useful,
+# OpenQuake is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with OpenQuake. If not, see <http://www.gnu.org/licenses/>.
@@ -18,129 +18,169 @@
 # Author: Poggi Valerio
 
 '''
-Collection of base classes to create site models.
+Collection of base classes to create and manipulate site models.
 '''
-
-#--------------------------------------------------
 
 import numpy as np
 import SiteMethods as SM
-
-#--------------------------------------------------
+import AsciiTools as AT
 
 class Site1D(object):
+  '''
+  SINGLE SITE ELEMENT (ONE-DIMENSIONAL)
+  The object is structured to act as minimal database for
+  soil properties, site metadata and methods to compute
+  site parameters (Vs30, amplification...)
+  '''
+
 
   def __init__(self, Id=[],
                      Name=[],
                      Longitude=[],
-                     Latitude=[]):
+                     Latitude=[],
+                     Elevation=[],
+                     Keys=['Hl','Vp','Vs','Dn','Qp','Qs']):
 
-    self.meta = {'Id': Id,
+    self.Meta = {'Id': Id,
                  'Name': Name,
                  'Longitude': Longitude,
-                 'Latitude': Latitude}
+                 'Latitude': Latitude,
+                 'Elevation': Elevation}
 
-    self.layer = []
-    self.layer_number = 0
+    self.Keys = Keys
+    self.Layer = []
 
-  #--------------------------------------------------
+    self.EngPar = {}
+    self.EngPar['Vz'] = {}
+    self.EngPar['Qwl'] = {}
 
-  def AddLayer(self, data=[]):
 
-    # Create a basic empty layer structure
-    L = {'Hl': [],
-         'Vp': [],
-         'Vs': [],
-         'Qp': [],
-         'Qs': []}
+  def AddLayer(self, Data=[]):
+    '''
+    
+    Method to add a single layer (and its properties)
+    to the site structure, at the bottom of an existing stack.
+    Data can be a list of values, sorted according to Site1D.Keys
+    or a dictionary element with corresponding format.
+    '''
 
-    # Inflate structure with data (if any)
-    if data:
-      for k in data.keys():
-        L[k] = float(data[k])
+    LS = {}
 
-    # Add the layer to the model
-    self.layer.append(L)
-    self.layer_number += 1
+    # Inflate the layer structure with data (if any)
 
-  #--------------------------------------------------
+    if type(Data) is list:
+      for i, k in enumerate(self.Keys):
+        if Data:
+          LS[k] = Data[i]
+        else:
+          LS[k] = []
+
+    if type(Data) is dict:
+      for k in Data.keys():
+        LS[k] = Data[k]
+
+    # Add the new layer structure to the layer stack
+    self.Layer.append(LS)
+
+
+  def Size(self):
+    '''
+    Method to return size of the data matrix.
+    '''
+
+    lnum = len(self.Layer)
+    knum = len(self.Keys)
+
+    return [lnum, knum]
+
+
+  def ImportModel(self, ascii_file,
+                        read_header='yes',
+                        dtype='float',
+                        delimiter=',',
+                        skipline=0,
+                        comment='#'):
+    '''
+    Method to parse soil properties from an ascii file.
+    '''
+
+    if read_header == 'yes':
+      header = []
+
+    if read_header == 'no':
+      header = self.Keys
+
+    at = AT.AsciiTable()
+    at.Import(ascii_file, header=header,
+                          dtype=dtype,
+                          delimiter=delimiter,
+                          skipline=skipline,
+                          comment=comment)
+
+    self.Keys = at.header
+    self.Layer = at.data
+
 
   def GetProfile(self, key):
+    '''
+    Method to extract a column of soil properties from
+    the layer stack. It returns a numpy array.
+    '''
 
-    return np.array([i[key] for i in self.layer])
+    return np.array([i[key] for i in self.Layer])
 
-  #--------------------------------------------------
 
-  def TTAverageVelocity(self, key, Z):
+  def ComputeTTAV(self, key, Z):
+    '''
+    Compute and store travel-time average velocity at
+    a given depth (Z) and for a specific key.
+    '''
 
     Hl = self.GetProfile('Hl')
-    Vs = self.GetProfile(key)
-    VsZ = SM.TTAverageVelocity(Hl, Vs, Z)
+    Vl = self.GetProfile(key)
 
-    return VsZ
+    Vz = SM.TTAverageVelocity(Hl, Vl, Z)
 
-  #--------------------------------------------------
+    self.EngPar['Vz'][str(Z)] = Vz
 
-  def ImportAsciiModel(self, model_file,
-                             header=[],
-                             delimeter=',',
-                             skipline=0,
-                             comment='#'):
+    return Vz
 
-    # Opening input model
-    with open(model_file, 'r') as f:
 
-      # Reinitialise layer parameters
-      self.layer = []
-      self.layer_number = 0
+  def ComputeSHTF(self, Freq, Iang):
+    '''
+    Compute the SH transfer function.
+    '''
 
-      # Read and ignore initial lines
-      for i in range(0, skipline):
-        f.readline()
+    Hl = self.GetProfile('Hl')
+    Vs = self.GetProfile('Vs')
+    Dn = self.GetProfile('Dn')
+    Qs = self.GetProfile('Qs')
 
-      # Import header line if not specified
-      if not header:
-        line = f.readline()
-        header = line.strip().split(delimeter)
+    shtf = SM.ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang)
 
-      # Loop over data
-      for line in f:
+    return shtf
 
-         # Skip comment lines
-        if line[0] != comment:
-
-          line = line.strip().split(delimeter)
-          value = np.array(line, dtype=float)
-
-          # Loop over header keys
-          data = {}
-          for i, k in enumerate(header):
-            data[k] = value[i]
-
-          self.AddLayer(data)
-
-      f.close()
-      return
-
-    # If file does not exist
-    print 'File not found.'
-
-#--------------------------------------------------
 
 class SiteBox(object):
+  '''
+  A simple container class to group sites of a region
+  '''
 
   def __init__(self, Id=[],
                      Name=[]):
 
-    self.meta = {'Id': Id,
+    self.Meta = {'Id': Id,
                  'Name': Name}
 
-    self.site = []
-    self.site_number = 0
+    self.Site = []
+    self.Size = 0
 
-  #--------------------------------------------------
 
   def AddSite(self, Site1D):
+    '''
+    Method to just add a single site object to the container.
+    '''
 
-    self.site.append(Site1D)
-    self.site_number += 1
+    self.Site.append(Site1D)
+    self.Size += 1
+
