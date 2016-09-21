@@ -166,3 +166,29 @@ def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang):
     htf[nf] = htu[nf]/hbu[nf]
 
   return htf
+
+
+def GetResFreq(Freq,AmpF):
+  '''
+  Identify resonance frequencies of an amplification function.
+  Output are two arrays: resonce frequencies and amplitude maxima.
+  '''
+
+  Fn = np.array([])
+  An = np.array([])
+
+  for nf, fr in enumerate(Freq[:-2]):
+
+    # Three-points search for local maxima
+    a0 = AmpF[nf]
+    a1 = AmpF[nf+1]
+    a2 = AmpF[nf+2]
+
+    if (a1-a0) > 0 and (a2-a1) < 0:
+
+      # Storing value
+      Fn = np.append(Fn,fr)
+      An = np.append(An,a1)
+
+  return [Fn, An]
+

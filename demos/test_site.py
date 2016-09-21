@@ -45,8 +45,7 @@ site.ImportModel('data/site01.mod',
 #--------------------------------------------------------------
 # Extracting profile information
 
-print 'Hl array:', site.GetProfile('Hl')
-print 'Vs array:', site.GetProfile('Vs')
+print 'Vs Profile:', site.GetProfile('Vs')
 
 #--------------------------------------------------------------
 # Add sites to a regional container
@@ -62,18 +61,18 @@ zone.AddSite(site)
 # Computing Travel-Time average velocity
 
 # Direct call (using default values)
-print 'Vs30:', site.ComputeTTAV()
+print 'Vs30:', site.ComputeTTAV(), 'm/s'
 
 # Using stored values for arbitrary depth
 site.ComputeTTAV('Vs',50.)
-print 'Vs50:', site.EngPar['Vz']['50.0']
+print 'Vs50:', site.EngPar['Vz']['50.0'], 'm/s'
 
 #--------------------------------------------------------------
 # Compute Geotechnical soil class
 
 site.ComputeGTClass('EC8')
 
-print site.EngPar['EC8']
+print 'EC8 Site Class:', site.EngPar['EC8']
 
 #--------------------------------------------------------------
 # Computing SH transfer-function
@@ -87,3 +86,11 @@ site.ComputeSHTF()
 
 plt.plot(site.Freq,np.abs(site.AmpFun['ShTF']))
 plt.show(block=False)
+
+#--------------------------------------------------------------
+# Identify resonance frequencies and their amplitude
+
+site.ComputeFnRes()
+
+print 'F0 is:', site.AmpFun['Fn'][0][0], 'Hz'
+print 'A0 is:', site.AmpFun['Fn'][1][0]

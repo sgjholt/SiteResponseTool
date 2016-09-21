@@ -49,9 +49,7 @@ class Site1D(object):
 
     self.Keys = Keys
     self.Layer = []
-
     self.Freq = []
-
     self.EngPar = {}
     self.AmpFun = {}
 
@@ -144,7 +142,8 @@ class Site1D(object):
     # Compute average velocity
     Vz = SM.TTAverageVelocity(Hl, Vl, Z)
 
-    # Check if data structure exists
+    # Check if data structure already exists
+    # to not overwrite previous data
     if not self.EngPar:
       self.EngPar['Vz'] = {}
 
@@ -156,18 +155,30 @@ class Site1D(object):
 
   def ComputeGTClass(self,BCode='EC8'):
     '''
+    Compute geotechnical classification according
+    to specified building code. Default is EC8.
     '''
 
     Vs30 = self.EngPar['Vz']['30.0']
 
-    # Check if data structure exists
+    # Check if data structure already exists
+    # to not overwrite previous data
     if not self.EngPar:
-      self.EngPar[Bcode] = {}
+      self.EngPar[BCode] = {}
 
+    # Check the values
     if Vs30 >= 800.:
-      self.EngPar['EC8'] = 'A'
-    if Vs30 >= 600. and Vs30 < 800.:
-      self.EngPar['EC8'] = 'B'
+      GClass = 'A'
+    if Vs30 >= 360. and Vs30 < 800.:
+      GClass = 'B'
+    if Vs30 >= 180. and Vs30 < 360.:
+      GClass = 'C'
+    if Vs30 < 180.:
+      GClass = 'D'
+
+    self.EngPar['EC8'] = GClass
+
+    return GClass
 
   def ComputeSHTF(self, Iang=0.):
     '''
@@ -184,7 +195,8 @@ class Site1D(object):
     # TF calculation
     ShTF = SM.ShTransferFunction(Hl, Vs, Dn, Qs, self.Freq, Iang)
 
-    # Check if data structure exists
+    # Check if data structure already exists
+    # to not overwrite previous data
     if not self.AmpFun:
       self.AmpFun['ShTF'] = {}
 
@@ -193,6 +205,20 @@ class Site1D(object):
 
     return ShTF
 
+  def ComputeFnRes(self):
+    '''
+    Identify resonance frequencies of an amplification function.
+    '''
+
+    Fn = SM.GetResFreq(self.Freq, np.abs(self.AmpFun['ShTF']))
+
+    # Check if data structure already exists
+    # to not overwrite previous data
+    if not self.AmpFun:
+      self.AmpFun['Fn'] = {}
+
+    # Store results into database
+    self.AmpFun['Fn'] = Fn
 
 class SiteBox(object):
   '''
