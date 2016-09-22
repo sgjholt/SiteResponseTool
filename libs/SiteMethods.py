@@ -22,48 +22,132 @@ Collection of standard functions for site response analysis
 '''
 
 import numpy as np
+import scipy.optimize as spo
 
-def TTAverageVelocity(Hl, Vl, Z):
+
+def TTAverageVelocity(hl, vs, z):
   '''
   The function calculates the travel-time
   average seismic velocity down to specified
-  depth (e.g. the Vl30).
+  depth (e.g. the Vs30).
 
   Input parameters:
-    Hl = array of n layer thickness (m)
-    Vl = attay of n seismic velocities (m/s)
-    Z = averaging depth (m)
+    hl = array of n layer thickness (m)
+    vs = attay of n seismic velocities (m/s)
+    z = averaging depth (m)
 
   Output:
-    VlZ = average over depth 'Z'
+    vsz = average velocity over depth 'z'
   '''
 
   # Initialisation
-  tt = 0.
-  Htot = 0.
-  Hl = np.array(Hl)
-  Vl = np.array(Vl)
-  lnum = Hl.size;
+  lnum = len(hl)
 
-  # Check if the model is an homogenous half-space
-  if lnum == 1:
-    VlZ = Vl
-  else:
-    # Loop over layers to compute the travel-times(tt)
-    for nl in range(0,lnum):
-      # Check for special cases (last and mid layers)
-      if nl != (lnum-1) and (Htot+Hl[nl]) <= Z:
-        tt += Hl[nl]/Vl[nl]
-      else:
-        tt += (Z-Htot)/Vl[nl]
-        break
-      Htot += Hl[nl]
-    VlZ = Z/tt
+  hl = np.array(hl)
+  vs = np.array(vs)
 
-  return VlZ
+  # Depth averaging is done on slowness
+  vsz = 1./DepthAverage(lnum, hl, 1./vs, z)
+
+  return vsz
 
 
-def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang):
+def QwlApproxSolver(hl, vs, dn, fr):
+  '''
+  This function solves the quarter-wavelength problem
+  (Boore 2003) and return the frequency-dependent
+  depth, velocity, density and amplification factor.
+
+  Input parameters:
+
+    hl = vector of n thickness (m)
+    vs = vector of n S-wave velocites (m/s)
+    dn = vector of n densities (gr/m3)
+    fr = vector of discrete frequencies (Hz)
+
+  Output:
+
+    qwhl = vector of quarter-wavelength depths
+    qwvs = vector of quarter-wavelength velocities
+    qwdn = vector of quarter-wavelength densities
+    qwaf = vector of quarter-wavelength amp. factors
+  '''
+
+  # Initialisation
+  fnum = len(fr)
+  lnum = len(hl)
+
+  hl = np.array(hl)
+  vs = np.array(vs)
+  dn = np.array(dn)
+
+  qwhl = np.zeros(fnum)
+  qwvs = np.zeros(fnum)
+  qwdn = np.zeros(fnum)
+  qwaf = np.zeros(fnum)
+
+  # Rock reference (last layer)
+  refv = vs[-1]
+  refd = dn[-1]
+
+  for nf in range(fnum):
+
+    # Upper depth bound for the search
+    ubnd = np.max(vs)/(4.*fr[nf])
+
+    # Search for quarter-wavelength depth
+    qwhl[nf] = spo.fminbound(QwlFitFunc, 0., ubnd,
+                             args=(lnum,hl,1./vs,fr[nf]))
+
+    # Computing average velocity (note: slowness is used)
+    qwvs[nf] = 1./DepthAverage(lnum, hl, 1./vs, qwhl[nf])
+
+    # Computing average density (for amplification function)
+    qwdn[nf] = DepthAverage(lnum, hl, dn, qwhl[nf])
+
+    # Computing amplification function
+    qwaf[nf] = np.sqrt((refd*refv)/(qwdn[nf]*qwvs[nf]))
+
+  return qwhl, qwvs, qwdn, qwaf
+
+
+def QwlFitFunc(z, lnum, hl, sl, fr):
+  '''
+  Misfit function (simple L1 norm)
+  '''
+
+  qwsl = DepthAverage(lnum, hl, sl, z)
+  obj = np.abs(z-(1/(4.*fr*qwsl)))
+  
+  return obj
+
+
+def DepthAverage(lnum, hl, par, z):
+  '''
+  Search function to compute depth-weighted
+  average of a generic parameter (slowness, density...)
+  '''
+
+  ztot = 0.
+  sum = 0.
+  islast = False
+
+  for nl in range(lnum):
+
+    if ((ztot + hl[nl]) < z) and (nl != lnum-1):
+      sum += (hl[nl]*par[nl])
+
+    else:
+      if islast == False:
+        sum += (z - ztot)*par[nl]
+        islast = True
+
+    ztot += hl[nl]
+
+  return sum/z
+
+
+def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang=0., Elastic=False):
 
   """
   SH wave transfer function using Knopoff formalism.
@@ -83,7 +167,8 @@ def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang):
   angf = 2.*np.pi*freq
 
   # Attenuation using complex velocities
-  vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
+  if not Elastic:
+    vs = vs*((2.*qs*1j)/(2.*qs*1j-1.))
 
   # Angle of propagation within layers
   iD = np.zeros((nlayer,1))
@@ -168,7 +253,7 @@ def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang):
   return htf
 
 
-def GetResFreq(Freq,AmpF):
+def GetResFreq(Freq, AmpF):
   '''
   Identify resonance frequencies of an amplification function.
   Output are two arrays: resonce frequencies and amplitude maxima.

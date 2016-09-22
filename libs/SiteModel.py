@@ -142,15 +142,48 @@ class Site1D(object):
     # Compute average velocity
     Vz = SM.TTAverageVelocity(Hl, Vl, Z)
 
-    # Check if data structure already exists
-    # to not overwrite previous data
-    if not self.EngPar:
+    if 'Vz' not in self.EngPar:
       self.EngPar['Vz'] = {}
 
     # Store results into database
     self.EngPar['Vz'][str(Z)] = Vz
 
     return Vz
+
+
+  def ComputeQWL(self, key='Vs'):
+    '''
+    Compute and store the quarter-wavelength representation
+    of the soil profile. Qwl-amplification is also stored.
+    '''
+
+    # Formatting model parameters
+    Hl = self.GetProfile('Hl')
+    Vl = self.GetProfile(key)
+    Dn = self.GetProfile('Dn')
+
+    # Compute average velocity
+    QwHl, QwVs, QwDn, QwAf = SM.QwlApproxSolver(Hl, Vl, Dn, self.Freq)
+
+    # Check data structure
+    if not self.EngPar:
+      self.EngPar = {}
+
+    if 'Qwl' not in self.EngPar:
+      self.EngPar['Qwl'] = {}
+
+    # Store results into database
+    self.EngPar['Qwl']['Hl'] = QwHl
+    self.EngPar['Qwl']['Vs'] = QwVs
+    self.EngPar['Qwl']['Dn'] = QwDn
+
+    if 'ShTF' not in self.AmpFun:
+      self.AmpFun['Qwl'] = {}
+
+    # Store results into database
+    self.AmpFun['Qwl'] = QwAf
+
+    return QwHl, QwVs, QwDn, QwAf
 
 
   def ComputeGTClass(self,BCode='EC8'):
@@ -161,9 +194,8 @@ class Site1D(object):
 
     Vs30 = self.EngPar['Vz']['30.0']
 
-    # Check if data structure already exists
-    # to not overwrite previous data
-    if not self.EngPar:
+    # Check data structure
+    if BCode not in self.EngPar:
       self.EngPar[BCode] = {}
 
     # Check the values
@@ -180,7 +212,8 @@ class Site1D(object):
 
     return GClass
 
-  def ComputeSHTF(self, Iang=0.):
+
+  def ComputeSHTF(self, Iang=0., Elastic=False):
     '''
     Compute the SH transfer function for an arbitrary
     incidence angle. Default angle is 0.
@@ -193,17 +226,16 @@ class Site1D(object):
     Qs = self.GetProfile('Qs')
 
     # TF calculation
-    ShTF = SM.ShTransferFunction(Hl, Vs, Dn, Qs, self.Freq, Iang)
+    ShTF = SM.ShTransferFunction(Hl, Vs, Dn, Qs, self.Freq, Iang, Elastic)
 
-    # Check if data structure already exists
-    # to not overwrite previous data
-    if not self.AmpFun:
+    if 'ShTF' not in self.AmpFun:
       self.AmpFun['ShTF'] = {}
 
     # Store results into database
     self.AmpFun['ShTF'] = ShTF
 
     return ShTF
+
 
   def ComputeFnRes(self):
     '''
@@ -212,13 +244,38 @@ class Site1D(object):
 
     Fn = SM.GetResFreq(self.Freq, np.abs(self.AmpFun['ShTF']))
 
-    # Check if data structure already exists
-    # to not overwrite previous data
+    # Check data structure
     if not self.AmpFun:
+      self.AmpFun = {}
+
+    if 'ShTF' not in self.AmpFun:
       self.AmpFun['Fn'] = {}
 
     # Store results into database
     self.AmpFun['Fn'] = Fn
+
+
+  def ComputeKappa0(self):
+    '''
+    Compute the Kappa parameter from the Qs profile
+    of the site, down to a given depth (default ?)
+    '''
+
+    print 'In Progress...'
+
+
+  def GenFreqAx(self, Fmin=0.1, Fmax=10., Fnum=100, Log=True):
+    '''
+    Method to generate a lin/log spaced frequency axis.
+    '''
+
+    if Log:
+      self.Freq = np.logspace(np.log10(Fmin),
+                              np.log10(Fmax),
+                              Fnum)
+    else:
+      self.Freq = np.linspace(Fmin, Fmax, Fnum)
+
 
 class SiteBox(object):
   '''
@@ -243,3 +300,19 @@ class SiteBox(object):
     self.Site.append(Site1D)
     self.Size += 1
 
+
+def AddDict(target, key=[], value=[]):
+  '''
+  Test function.
+  '''
+
+  if not target:
+    target = {}
+
+  if key:
+    if key not in target:
+      target[key] = {}
+      if value:
+        target[key] = value
+
+  return target
