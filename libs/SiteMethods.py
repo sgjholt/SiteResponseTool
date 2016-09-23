@@ -275,5 +275,5 @@ def GetResFreq(Freq, AmpF):
       Fn = np.append(Fn,fr)
       An = np.append(An,a1)
 
-  return [Fn, An]
+  return Fn, An
 

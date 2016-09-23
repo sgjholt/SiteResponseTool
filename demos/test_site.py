@@ -96,7 +96,7 @@ plt.plot(site.Freq,np.abs(site.AmpFun['ShTF']),'k')
 site.ComputeSHTF(Iang=45., Elastic=True)
 plt.plot(site.Freq,np.abs(site.AmpFun['ShTF']),'r')
 
-plt.plot(site.Freq,np.abs(site.AmpFun['Qwl']),'b')
+plt.plot(site.Freq,site.AmpFun['Qwl'],'b')
 plt.show(block=False)
 
 #--------------------------------------------------------------
@@ -104,6 +104,19 @@ plt.show(block=False)
 
 site.ComputeFnRes()
 
-print 'F0 is:', site.AmpFun['Fn'][0][0], 'Hz'
-print 'A0 is:', site.AmpFun['Fn'][1][0]
+print 'F0 is:', site.AmpFun['Fn'][0], 'Hz'
+print 'A0 is:', site.AmpFun['An'][0]
 
+#--------------------------------------------------------------
+# Compute Kappa0
+
+# Using whole profile (down to last layer)
+site.ComputeKappa0()
+print 'Kappa0 is:', site.EngPar['Kappa0'], 's'
+
+# Using arbitrary depth
+site.ComputeKappa0(Z=100)
+print 'Kappa0 is:', site.EngPar['Kappa0'], 's'
+
+site.ComputeAttFun()
+plt.plot(site.Freq,site.AmpFun['Qwl']*site.AmpFun['AttF'],'r--')

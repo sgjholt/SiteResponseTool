@@ -142,6 +142,7 @@ class Site1D(object):
     # Compute average velocity
     Vz = SM.TTAverageVelocity(Hl, Vl, Z)
 
+    # Check data structure
     if 'Vz' not in self.EngPar:
       self.EngPar['Vz'] = {}
 
@@ -166,9 +167,6 @@ class Site1D(object):
     QwHl, QwVs, QwDn, QwAf = SM.QwlApproxSolver(Hl, Vl, Dn, self.Freq)
 
     # Check data structure
-    if not self.EngPar:
-      self.EngPar = {}
-
     if 'Qwl' not in self.EngPar:
       self.EngPar['Qwl'] = {}
 
@@ -177,6 +175,7 @@ class Site1D(object):
     self.EngPar['Qwl']['Vs'] = QwVs
     self.EngPar['Qwl']['Dn'] = QwDn
 
+    # Check data structure
     if 'ShTF' not in self.AmpFun:
       self.AmpFun['Qwl'] = {}
 
@@ -185,6 +184,36 @@ class Site1D(object):
 
     return QwHl, QwVs, QwDn, QwAf
 
+
+  def ComputeKappa0(self, key='Vs', Z=[]):
+    '''
+    Compute the Kappa parameter from the Qs profile
+    of the site, down to a given depth (default is
+    the whole profile)
+    '''
+
+    # Formatting model parameters
+    Hl = self.GetProfile('Hl')
+    Vl = self.GetProfile(key)
+    Qs = self.GetProfile('Qs')
+
+    lnum = len(Hl)
+
+    # If Z not given, using the whole profile
+    if not Z:
+      Z = np.sum(Hl)
+
+    Par = Z/(Vl*Qs)
+    Kappa0 = SM.DepthAverage(lnum, Hl, Par, Z)
+
+    # Check data structure
+    if 'Kappa0' not in self.EngPar:
+      self.EngPar['Kappa0'] = {}
+
+    # Store results into database
+    self.EngPar['Kappa0'] = Kappa0
+
+    return Kappa0
 
   def ComputeGTClass(self,BCode='EC8'):
     '''
@@ -228,6 +257,7 @@ class Site1D(object):
     # TF calculation
     ShTF = SM.ShTransferFunction(Hl, Vs, Dn, Qs, self.Freq, Iang, Elastic)
 
+    # Check data structure
     if 'ShTF' not in self.AmpFun:
       self.AmpFun['ShTF'] = {}
 
@@ -239,29 +269,46 @@ class Site1D(object):
 
   def ComputeFnRes(self):
     '''
-    Identify resonance frequencies of an amplification function.
+    Identify resonance frequencies of the SH-wave
+    transfer function.
     '''
 
-    Fn = SM.GetResFreq(self.Freq, np.abs(self.AmpFun['ShTF']))
+    Fn, An = SM.GetResFreq(self.Freq, np.abs(self.AmpFun['ShTF']))
 
     # Check data structure
-    if not self.AmpFun:
-      self.AmpFun = {}
-
-    if 'ShTF' not in self.AmpFun:
+    if 'Fn' not in self.AmpFun:
       self.AmpFun['Fn'] = {}
 
     # Store results into database
     self.AmpFun['Fn'] = Fn
 
+    # Check data structure
+    if 'An' not in self.AmpFun:
+      self.AmpFun['An'] = {}
 
-  def ComputeKappa0(self):
+    # Store results into database
+    self.AmpFun['An'] = An
+
+    return Fn, An
+
+
+  def ComputeAttFun(self):
     '''
-    Compute the Kappa parameter from the Qs profile
-    of the site, down to a given depth (default ?)
+    Compute the frequency-dependent attenuation
+    functio from a give Kappa0.
     '''
 
-    print 'In Progress...'
+    # Compute exponential decay function
+    AttF = np.exp(-np.pi*self.EngPar['Kappa0']*self.Freq)
+
+    # Check data structure
+    if 'AttF' not in self.AmpFun:
+      self.AmpFun['AttF'] = {}
+
+    # Store results into database
+    self.AmpFun['AttF'] = AttF
+
+    return AttF
 
 
   def GenFreqAx(self, Fmin=0.1, Fmax=10., Fnum=100, Log=True):
