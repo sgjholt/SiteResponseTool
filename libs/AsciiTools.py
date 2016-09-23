@@ -17,9 +17,9 @@
 #
 # Author: Poggi Valerio
 
-'''
+"""
 A simple tool to manipulate data from/to ascii files.
-'''
+"""
 
 import numpy as np
 import fnmatch as fnm
@@ -37,10 +37,10 @@ class AsciiTable():
 
 
   def AddElement(self, data=[]):
-    '''
+    """
     Add an element (with header's format) to the data structure.
     Element can be empty or filled with data.
-    '''
+    """
 
     newitem = {}
 
@@ -55,9 +55,9 @@ class AsciiTable():
 
 
   def Size(self):
-    '''
+    """
     Method to return size of the data matrix.
-    '''
+    """
 
     enum = len(self.data)
     hnum = len(self.header)
@@ -71,9 +71,9 @@ class AsciiTable():
                    delimiter=',',
                    skipline=0,
                    comment='#'):
-    '''
+    """
     Method to import data from ascii file (tabular)
-    '''
+    """
 
     # Open input ascii file
     with open(ascii_file, 'r') as f:
@@ -113,9 +113,9 @@ class AsciiTable():
   def Export(self, ascii_file,
                    write_header='yes',
                    delimiter=','):
-    '''
+    """
     Method to export data object into an ascii file.
-    '''
+    """
 
     with open(ascii_file, 'w') as f:
 
@@ -141,10 +141,10 @@ class AsciiTable():
 
 
   def Append(self, new_table):
-    '''
+    """
     Method to merge two data structures consecutively.
     (Header structure must be identical).
-    '''
+    """
 
     if self.header == new_table.header:
       for i in range(0,new_table.Size()[0]):
@@ -155,10 +155,10 @@ class AsciiTable():
 
 
   def Extract(self, key, dtype='float'):
-    '''
+    """
     Method to extract data values by key.
     Data type can be specified.
-    '''
+    """
 
     values = []
 
@@ -170,12 +170,12 @@ class AsciiTable():
 
 
   def Filter(self, key, filter_key):
-    '''
+    """
     Method to filter the data table by key value.
     Value can be a string to amtch (* and ? allowed)
     or a numerical range (as a list of floats).
     In output it is returned a new table.
-    '''
+    """
 
     NewTab = AsciiTable(self.header)
 

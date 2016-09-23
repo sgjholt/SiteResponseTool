@@ -17,21 +17,21 @@
 #
 # Author: Poggi Valerio
 
-'''
+"""
 Collection of base classes to create and manipulate site models.
-'''
+"""
 
 import numpy as np
 import SiteMethods as SM
 import AsciiTools as AT
 
 class Site1D(object):
-  '''
+  """
   SINGLE SITE ELEMENT (ONE-DIMENSIONAL)
   The object is structured to act as minimal database for
   soil properties, site metadata and methods to compute
   site parameters (Vs30, amplification...)
-  '''
+  """
 
 
   def __init__(self, Id=[],
@@ -55,12 +55,12 @@ class Site1D(object):
 
 
   def AddLayer(self, Data=[]):
-    '''
+    """
     Method to add a single layer (and its properties)
     to the site structure, at the bottom of an existing stack.
     Data can be a list of values, sorted according to Site1D.Keys
     or a dictionary element with corresponding format.
-    '''
+    """
 
     LS = {}
 
@@ -82,9 +82,9 @@ class Site1D(object):
 
 
   def Size(self):
-    '''
+    """
     Method to return size of the data matrix.
-    '''
+    """
 
     lnum = len(self.Layer)
     knum = len(self.Keys)
@@ -98,9 +98,9 @@ class Site1D(object):
                         delimiter=',',
                         skipline=0,
                         comment='#'):
-    '''
+    """
     Method to parse soil properties from an ascii file.
-    '''
+    """
 
     if read_header == 'yes':
       header = []
@@ -120,20 +120,20 @@ class Site1D(object):
 
 
   def GetProfile(self, key):
-    '''
+    """
     Utility method to extract a column of soil properties
     from the layer stack. It returns a numpy array.
-    '''
+    """
 
     return np.array([i[key] for i in self.Layer])
 
 
   def ComputeTTAV(self, key='Vs', Z=30.):
-    '''
+    """
     Compute and store travel-time average velocity at
     a given depth (Z) and for a specific key.
     Default is Vs30
-    '''
+    """
 
     # Formatting model parameters
     Hl = self.GetProfile('Hl')
@@ -153,10 +153,10 @@ class Site1D(object):
 
 
   def ComputeQWL(self, key='Vs'):
-    '''
+    """
     Compute and store the quarter-wavelength representation
     of the soil profile. Qwl-amplification is also stored.
-    '''
+    """
 
     # Formatting model parameters
     Hl = self.GetProfile('Hl')
@@ -186,25 +186,19 @@ class Site1D(object):
 
 
   def ComputeKappa0(self, key='Vs', Z=[]):
-    '''
+    """
     Compute the Kappa parameter from the Qs profile
     of the site, down to a given depth (default is
     the whole profile)
-    '''
+    """
 
     # Formatting model parameters
     Hl = self.GetProfile('Hl')
     Vl = self.GetProfile(key)
     Qs = self.GetProfile('Qs')
 
-    lnum = len(Hl)
-
-    # If Z not given, using the whole profile
-    if not Z:
-      Z = np.sum(Hl)
-
-    Par = Z/(Vl*Qs)
-    Kappa0 = SM.DepthAverage(lnum, Hl, Par, Z)
+    # Comput attenuation
+    Kappa0 = SM.Kappa0(Hl, Vl, Qs, Z)
 
     # Check data structure
     if 'Kappa0' not in self.EngPar:
@@ -215,11 +209,12 @@ class Site1D(object):
 
     return Kappa0
 
+
   def ComputeGTClass(self,BCode='EC8'):
-    '''
+    """
     Compute geotechnical classification according
     to specified building code. Default is EC8.
-    '''
+    """
 
     Vs30 = self.EngPar['Vz']['30.0']
 
@@ -243,10 +238,10 @@ class Site1D(object):
 
 
   def ComputeSHTF(self, Iang=0., Elastic=False):
-    '''
+    """
     Compute the SH transfer function for an arbitrary
     incidence angle. Default angle is 0.
-    '''
+    """
 
     # Formatting model parameters
     Hl = self.GetProfile('Hl')
@@ -268,10 +263,10 @@ class Site1D(object):
 
 
   def ComputeFnRes(self):
-    '''
+    """
     Identify resonance frequencies of the SH-wave
     transfer function.
-    '''
+    """
 
     Fn, An = SM.GetResFreq(self.Freq, np.abs(self.AmpFun['ShTF']))
 
@@ -293,10 +288,10 @@ class Site1D(object):
 
 
   def ComputeAttFun(self):
-    '''
+    """
     Compute the frequency-dependent attenuation
     functio from a give Kappa0.
-    '''
+    """
 
     # Compute exponential decay function
     AttF = np.exp(-np.pi*self.EngPar['Kappa0']*self.Freq)
@@ -312,9 +307,9 @@ class Site1D(object):
 
 
   def GenFreqAx(self, Fmin=0.1, Fmax=10., Fnum=100, Log=True):
-    '''
+    """
     Method to generate a lin/log spaced frequency axis.
-    '''
+    """
 
     if Log:
       self.Freq = np.logspace(np.log10(Fmin),
@@ -325,9 +320,9 @@ class Site1D(object):
 
 
 class SiteBox(object):
-  '''
+  """
   A simple container class to group sites of a region
-  '''
+  """
 
   def __init__(self, Id=[],
                      Name=[]):
@@ -340,18 +335,18 @@ class SiteBox(object):
 
 
   def AddSite(self, Site1D):
-    '''
+    """
     Method to just add a single site object to the container.
-    '''
+    """
 
     self.Site.append(Site1D)
     self.Size += 1
 
 
 def AddDict(target, key=[], value=[]):
-  '''
+  """
   Test function.
-  '''
+  """
 
   if not target:
     target = {}

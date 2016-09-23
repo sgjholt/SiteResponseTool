@@ -17,16 +17,16 @@
 #
 # Author: Poggi Valerio
 
-'''
+"""
 Collection of standard functions for site response analysis
-'''
+"""
 
 import numpy as np
 import scipy.optimize as spo
 
 
 def TTAverageVelocity(hl, vs, z):
-  '''
+  """
   The function calculates the travel-time
   average seismic velocity down to specified
   depth (e.g. the Vs30).
@@ -38,7 +38,7 @@ def TTAverageVelocity(hl, vs, z):
 
   Output:
     vsz = average velocity over depth 'z'
-  '''
+  """
 
   # Initialisation
   lnum = len(hl)
@@ -53,7 +53,7 @@ def TTAverageVelocity(hl, vs, z):
 
 
 def QwlApproxSolver(hl, vs, dn, fr):
-  '''
+  """
   This function solves the quarter-wavelength problem
   (Boore 2003) and return the frequency-dependent
   depth, velocity, density and amplification factor.
@@ -71,7 +71,7 @@ def QwlApproxSolver(hl, vs, dn, fr):
     qwvs = vector of quarter-wavelength velocities
     qwdn = vector of quarter-wavelength densities
     qwaf = vector of quarter-wavelength amp. factors
-  '''
+  """
 
   # Initialisation
   fnum = len(fr)
@@ -112,9 +112,9 @@ def QwlApproxSolver(hl, vs, dn, fr):
 
 
 def QwlFitFunc(z, lnum, hl, sl, fr):
-  '''
+  """
   Misfit function (simple L1 norm)
-  '''
+  """
 
   qwsl = DepthAverage(lnum, hl, sl, z)
   obj = np.abs(z-(1/(4.*fr*qwsl)))
@@ -123,10 +123,10 @@ def QwlFitFunc(z, lnum, hl, sl, fr):
 
 
 def DepthAverage(lnum, hl, par, z):
-  '''
+  """
   Search function to compute depth-weighted
   average of a generic parameter (slowness, density...)
-  '''
+  """
 
   ztot = 0.
   sum = 0.
@@ -147,8 +147,30 @@ def DepthAverage(lnum, hl, par, z):
   return sum/z
 
 
-def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang=0., Elastic=False):
+def Kappa0(hl, vs, qs, z=[]):
+  """
+  This function calucalted the attenuation parameter
+  Kappa(0) from a soil profile down to an arbitrary
+  depth z.
+  """
 
+  # Initialisation
+  lnum = len(hl)
+
+  # If z not given, using the whole profile
+  if not z:
+    z = np.sum(hl)
+
+  # Elastic property vector
+  par = z/(vs*qs)
+
+  # Computing attenuation
+  kappa0 = DepthAverage(lnum, hl, par, z)
+
+  return kappa0
+
+
+def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang=0., Elastic=False):
   """
   SH wave transfer function using Knopoff formalism.
   Authors: Poggi Valerio, Marwan Irnaka
@@ -254,10 +276,10 @@ def ShTransferFunction(Hl, Vs, Dn, Qs, Freq, Iang=0., Elastic=False):
 
 
 def GetResFreq(Freq, AmpF):
-  '''
+  """
   Identify resonance frequencies of an amplification function.
   Output are two arrays: resonce frequencies and amplitude maxima.
-  '''
+  """
 
   Fn = np.array([])
   An = np.array([])
