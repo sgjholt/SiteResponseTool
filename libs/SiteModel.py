@@ -214,6 +214,7 @@ class Site1D(object):
     """
     Compute geotechnical classification according
     to specified building code. Default is EC8.
+    (Missing special classes)
     """
 
     Vs30 = self.EngPar['Vz']['30.0']
