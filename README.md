@@ -16,3 +16,5 @@ To do:
 - Linear equivalent soil response
 - Methods to adjust for reference Vs and Kappa
 - Response spectral amplification using RVT
+- Waveform convolution and basic signal processing methods
+- Soil profile randomisation
