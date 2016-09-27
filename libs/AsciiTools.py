@@ -54,6 +54,59 @@ class AsciiTable():
     self.data.append(newitem)
 
 
+  def AddKey(self, key, data=[], index=-1):
+    """
+    Add header key at given position (default is last element).
+    Data structure can optionally be inflated.
+    """
+
+    # Default index simply appends
+    if index == -1:
+      index = len(self.header)
+
+    self.header.insert(index, key)
+
+    # Loop over data
+    for i, item in enumerate(self.data):
+
+      # Check value types
+      if not value or type(data) != list:
+        element = data
+      else:
+        element = data[i]
+
+      # Add element at corresponding key
+      self.data[i][key] = element
+
+
+  def RemoveKey(self, key):
+    """
+    Remove a given key from header and data structure.
+    """
+
+    # Remove from header
+    i = self.header.index(key)
+    self.header.pop(i)
+
+    # Remove from data
+    for i, item in enumerate(self.data):
+      self.data[i].pop(key)
+
+
+  def RenameKey(self, old_key, new_key):
+    """
+    Rename a given key in the header and the data structure.
+    """
+
+    # Rename header's key
+    i = self.header.index(old_key)
+    self.header[i] = new_key
+
+    # Rename key in data structure
+    for i, item in enumerate(self.data):
+      self.data[i][new_key] = self.data[i].pop(old_key)
+
+
   def Size(self):
     """
     Method to return size of the data matrix.
@@ -99,7 +152,18 @@ class AsciiTable():
           # Loop over data values
           data = []
           for i, k in enumerate(self.header):
-            data.append(CastValue(value[i],dtype))
+
+            # Check data type
+            if type(dtype) == list:
+              dtp = dtype[i]
+            else:
+              dtp = dtype
+
+            # Check for empty values
+            if not value[i]:
+              value[i] = 'NaN'
+
+            data.append(_CastValue(value[i],dtp))
 
           self.AddElement(data)
 
@@ -137,7 +201,7 @@ class AsciiTable():
       return
 
     # Warn user if model file does not exist
-    print 'File not found.'
+    print 'Cannot open file.'
 
 
   def Append(self, new_table):
@@ -163,7 +227,7 @@ class AsciiTable():
     values = []
 
     for item in self.data:
-      value = CastValue(item[key], dtype)
+      value = _CastValue(item[key], dtype)
       values.append(value)
 
     return values
@@ -197,12 +261,13 @@ class AsciiTable():
     return NewTab
 
 
-def CastValue(value, dtype='float'):
+def _CastValue(value, dtype='float'):
+  """
+  """
 
   if dtype == 'string':
     value = str(value)
-  if dtype == 'int':
-    value = int(value)
+
   if dtype == 'float':
     value = float(value)
 
