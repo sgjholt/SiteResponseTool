@@ -15,7 +15,8 @@ Current features:
   * Compute Quarter-Wavelength average parameters (velocity and density) and amplification
   * Compute Kappa0 for arbitrary depth from Qs profile (default is whole profile)
   * Compute SH-wave Transfer Function (elastic/anelastic) for arbitrary angle of incidence
-  * Compute resonance frequencies (from ShTf) and corresponding amplitudes
+  * Compute resonance frequencies and corresponding amplitudes
+  * Basic signal processing
 
 To do:
 
