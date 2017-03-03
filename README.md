@@ -2,7 +2,7 @@
 
 [![AGPLv3](https://www.gnu.org/graphics/agplv3-88x31.png)](https://www.gnu.org/licenses/agpl.html)
 
-# OQ-SRTK - The OpenQuake Seismic Site Response Toolkit
+# OQ-SRTK - OpenQuake Site Response Toolkit
 
 A Site Characterisation and Seismic Response Analysis Toolkit for Python
 
