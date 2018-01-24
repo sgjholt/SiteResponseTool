@@ -138,9 +138,9 @@ def QwlImpedance(qwvs, qwdn, vsr=[], dnr=[]):
 
   # Reference default
   if not vsr:
-    vsr = qwvs[-1]
+    vsr = qwvs[0]
   if not dnr:
-    dnr = qwdn[-1]
+    dnr = qwdn[0]
 
   # Computing amplification function
   qwaf = _np.sqrt((dnr*vsr)/(qwdn*qwvs))
